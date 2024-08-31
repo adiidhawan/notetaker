@@ -1,0 +1,116 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model User {
+  id                      String                   @id @default(cuid())
+  name                    String?
+  email                   String?                  @unique
+  emailVerified           DateTime?
+  image                   String?
+  accounts                Account[]
+  sessions                Session[]
+  meetings                Meeting[]
+  tags                    Tag[]
+  pushSubscriptions       PushSubscription[]
+  notificationPreferences NotificationPreferences?
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  endpoint  String
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+
+  @@unique([userId, endpoint])
+}
+
+model NotificationPreferences {
+  id               String  @id @default(cuid())
+  userId           String  @unique
+  user             User    @relation(fields: [userId], references: [id])
+  meetingReminders Boolean @default(true)
+  meetingStart     Boolean @default(true)
+  meetingEnd       Boolean @default(true)
+  transcriptReady  Boolean @default(true)
+  summaryReady     Boolean @default(true)
+}
+
+model Tag {
+  id       String    @id @default(cuid())
+  name     String
+  userId   String
+  user     User      @relation(fields: [userId], references: [id])
+  meetings Meeting[]
+
+  @@unique([name, userId])
+}
+
+model Meeting {
+  id               String    @id @default(cuid())
+  userId           String
+  title            String?
+  url              String
+  startTime        DateTime
+  endTime          DateTime?
+  duration         Int?
+  audioUrl         String?
+  videoUrl         String?
+  transcriptUrl    String?
+  aiSummary        String?
+  aiNotes          String?
+  shareToken       String?   @unique
+  sharePassword    String?
+  shareExpiration  DateTime?
+  shareRevoked     Boolean   @default(false)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  recallBotId      String?
+  status           String    @default("SCHEDULED")
+  processingStatus String?   @default("PENDING")
+
+  user User  @relation(fields: [userId], references: [id])
+  tags Tag[] // Add this line to create the relation with Tag
+}
